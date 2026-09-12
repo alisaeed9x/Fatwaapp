@@ -38,6 +38,72 @@ jobs:
             npx cap add android
           fi
 
+      - name: إضافة أذونات التخزين وطلبها فعليًا وقت فتح التطبيق
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          MAIN_ACTIVITY="android/app/src/main/java/com/alisaeed/fatwaapp/MainActivity.java"
+
+          # 1) إضافة أذونات التخزين في AndroidManifest.xml (لو مش مضافة قبل كده)
+          if ! grep -q "READ_EXTERNAL_STORAGE" "$MANIFEST"; then
+            sed -i '/<manifest /a\
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\
+              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\
+              <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />\
+              <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />\
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />' "$MANIFEST"
+          fi
+
+          # 2) تعديل MainActivity.java عشان يطلب الأذونات دي فورًا كـ popup
+          #    وقت فتح التطبيق (مش بس تعريفها في الـ Manifest، ده بيخليها
+          #    تظهر فعليًا للمستخدم كنافذة سماح/رفض).
+          cat > "$MAIN_ACTIVITY" << 'EOF'
+          package com.alisaeed.fatwaapp;
+
+          import android.Manifest;
+          import android.content.pm.PackageManager;
+          import android.os.Build;
+          import android.os.Bundle;
+          import androidx.core.app.ActivityCompat;
+          import androidx.core.content.ContextCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              private static final int PERMISSION_REQUEST_CODE = 1001;
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  requestNeededPermissions();
+              }
+
+              private void requestNeededPermissions() {
+                  java.util.List<String> toRequest = new java.util.ArrayList<>();
+                  String[] permissions;
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                      permissions = new String[]{
+                          Manifest.permission.READ_MEDIA_IMAGES,
+                          Manifest.permission.READ_MEDIA_AUDIO,
+                          Manifest.permission.RECORD_AUDIO
+                      };
+                  } else {
+                      permissions = new String[]{
+                          Manifest.permission.READ_EXTERNAL_STORAGE,
+                          Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                          Manifest.permission.RECORD_AUDIO
+                      };
+                  }
+                  for (String p : permissions) {
+                      if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED) {
+                          toRequest.add(p);
+                      }
+                  }
+                  if (!toRequest.isEmpty()) {
+                      ActivityCompat.requestPermissions(this, toRequest.toArray(new String[0]), PERMISSION_REQUEST_CODE);
+                  }
+              }
+          }
+          EOF
+
       - name: مزامنة Capacitor مع مشروع Android
         run: npx cap sync android
 
