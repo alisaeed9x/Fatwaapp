@@ -1,0 +1,6 @@
+{
+  "appId": "com.alisaeed.fatwaapp",
+  "appName": "فتوى",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
