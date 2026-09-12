@@ -56,22 +56,6 @@ jobs:
       - name: رفع الـ APK كملف يمكن تحميله
         uses: actions/upload-artifact@v4
         with:
-          name: fatwa-app-debug-apk
+          name: fatwa-app-debug-apk-${{ github.run_number }}-${{ github.run_attempt }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
-      - name: توليد أيقونة التطبيق من resources/icon.png لكل الأحجام
-        run: |
-          npm install -D @capacitor/assets
-          npx capacitor-assets generate --android
-
-      - name: صلاحية تنفيذ لملف gradlew
-        run: chmod +x android/gradlew
-
-      - name: بناء APK (Debug)
-        working-directory: android
-        run: ./gradlew assembleDebug
-
-      - name: رفع الـ APK كملف يمكن تحميله
-        uses: actions/upload-artifact@v4
-        with:
-          name: fatwa-app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          overwrite: true
