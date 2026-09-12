@@ -15,7 +15,7 @@ jobs:
       - name: تجهيز Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: تجهيز Java (مطلوب لـ Gradle/Android)
         uses: actions/setup-java@v4
@@ -32,9 +32,32 @@ jobs:
         run: |
           sed -i "s/__GEMINI_API_KEY__/${GEMINI_API_KEY}/" www/index.html
 
+      - name: إضافة منصة Android لو مش موجودة في الريبو
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
       - name: مزامنة Capacitor مع مشروع Android
         run: npx cap sync android
 
+      - name: توليد أيقونة التطبيق من resources/icon.png لكل الأحجام
+        run: |
+          npm install -D @capacitor/assets
+          npx capacitor-assets generate --android
+
+      - name: صلاحية تنفيذ لملف gradlew
+        run: chmod +x android/gradlew
+
+      - name: بناء APK (Debug)
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: رفع الـ APK كملف يمكن تحميله
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatwa-app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
       - name: توليد أيقونة التطبيق من resources/icon.png لكل الأحجام
         run: |
           npm install -D @capacitor/assets
